@@ -1250,12 +1250,31 @@
   // -------------------------------------------------------------------------
   // 7. CLEANUP
   // -------------------------------------------------------------------------
-  window.__GAMESENSE_SKEET__ = {
-    destroy: () => {
-      cancelAnimationFrame(loopHandle); overlayCanvas.remove(); gui.remove(); style.remove(); window.removeEventListener('resize', resizeCanvas);
-      if (window.__ORIG_EMIT__) { const g = resolveGame(); if(g?.events) g.events.emit = window.__ORIG_EMIT__; }
-      if (window.__ORIG_WUMPUS_UPDATE__) { const g = resolveGame(); if(g?.wumpus) g.wumpus.update = window.__ORIG_WUMPUS_UPDATE__; }
-    },
+  window.__SK_CLEANUP__ = () => {
+    cancelAnimationFrame(loopHandle);
+    if (overlayCanvas && overlayCanvas.parentNode) overlayCanvas.remove();
+    if (gui && gui.parentNode) gui.remove();
+    if (style && style.parentNode) style.remove();
+    const splash = document.getElementById('sk-splash'); if (splash) splash.remove();
+    window.removeEventListener('resize', resizeCanvas);
+    if (window.__ORIG_EMIT__) { const g = resolveGame(); if(g?.events) g.events.emit = window.__ORIG_EMIT__; delete window.__ORIG_EMIT__; }
+    if (window.__ORIG_WUMPUS_UPDATE__) { const g = resolveGame(); if(g?.wumpus) g.wumpus.update = window.__ORIG_WUMPUS_UPDATE__; delete window.__ORIG_WUMPUS_UPDATE__; }
+    if (window.__SK_ORIG_RENDER__) { const g = resolveGame(); if(g?.renderer) g.renderer.render = window.__SK_ORIG_RENDER__; delete window.__SK_ORIG_RENDER__; }
+    if (runtime.network.peer) runtime.network.peer.destroy();
+    if (window.__SK_OTA_INTERVAL__) { clearInterval(window.__SK_OTA_INTERVAL__); delete window.__SK_OTA_INTERVAL__; }
+    
+    // Clear out remote skeletons
+    const g = resolveGame();
+    if (g && g.scene) {
+        for (let id in runtime.network.skeletons) {
+            const sk = runtime.network.skeletons[id];
+            if (sk && sk.group && sk.group.parent) {
+                sk.group.parent.remove(sk.group);
+            }
+        }
+    }
+    console.log('%c[skeet OTA]%c old instance wiped.', 'color:#a4cb38;font-weight:bold;', 'color:#fff;');
   };
+  window.__GAMESENSE_SKEET__ = { destroy: window.__SK_CLEANUP__ };
   console.log('%c[gamesense]%c UI loaded.', 'color:#a4cb38;font-weight:bold;', 'color:#fff;');
 })();
