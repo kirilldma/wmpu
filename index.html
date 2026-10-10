@@ -1,33 +1,165 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#eadff5">
-  <title>Wumpus Torture Simulator</title>
-  <link rel="icon" href="data:,">
-  <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #eadff5; }
-    canvas#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-    #loading { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #eadff5; font: 900 22px system-ui, sans-serif; color: #4f5bd0; transition: opacity .4s; }
-    #loading.done { opacity: 0; pointer-events: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>skeet.wts — Wumpus Torture Simulator Cheat</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f0f0f;color:#cdcdcd;font-family:Verdana,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+  canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.15}
+  .wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%}
+  .logo{font-size:32px;font-weight:bold;letter-spacing:3px;margin-bottom:4px}
+  .logo span{background:linear-gradient(90deg,#37b1da,#cc46cd,#cce335);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:4px;margin-bottom:48px}
+  .card{background:#171717;border:1px solid #0c0c0c;box-shadow:inset 0 0 0 1px #1e1e1e,0 40px 80px rgba(0,0,0,.9);padding:32px;width:520px;max-width:95vw}
+  .rainbow{height:2px;background:linear-gradient(90deg,#37b1da 0%,#cc46cd 50%,#cce335 100%);margin-bottom:24px}
+  .tabs{display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin-bottom:24px}
+  .tab{padding:6px 16px;font-size:10px;color:#555;cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid transparent;transition:.15s}
+  .tab.active{color:#cdcdcd;border-bottom-color:#97b621}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .step{display:flex;gap:14px;align-items:flex-start;margin-bottom:18px}
+  .step-num{width:22px;height:22px;background:#97b621;color:#000;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step-text{font-size:11px;color:#9d9d9d;line-height:1.7}
+  .step-text b{color:#cdcdcd}
+  .code-box{background:#0c0c0c;border:1px solid #1e1e1e;padding:10px 12px;font-family:Consolas,monospace;font-size:10px;color:#97b621;margin:8px 0;word-break:break-all;cursor:pointer;transition:border-color .15s;line-height:1.5}
+  .code-box:hover{border-color:#97b621}
+  .btn{width:100%;height:30px;background:linear-gradient(to bottom,#2e2e2e,#292929);border:1px solid #0c0c0c;color:#cdcdcd;font-size:11px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:.1s;font-family:Verdana;margin-top:8px}
+  .btn:hover{background:linear-gradient(to bottom,#363636,#313131)}
+  .btn.green{border-color:#97b621;color:#97b621}
+  .changelog-entry{margin-bottom:20px}
+  .cl-ver{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .cl-ver span:first-child{font-size:12px;font-weight:bold;color:#cdcdcd}
+  .cl-tag{font-size:9px;background:#97b621;color:#000;padding:1px 6px;font-weight:bold}
+  .cl-tag.red{background:#cc3333}
+  .cl-date{font-size:9px;color:#444;margin-left:auto}
+  .cl-item{font-size:11px;color:#9d9d9d;padding:3px 0 3px 10px;border-left:2px solid #232323}
+  .cl-item::before{content:'+ ';color:#97b621}
+  .cl-item.fix::before{content:'✓ ';color:#37b1da}
+  .feat{display:inline-block;font-size:9px;background:#232323;color:#555;padding:1px 5px;margin-left:4px;vertical-align:middle}
+  .footer{margin-top:12px;font-size:9px;color:#333;text-align:center;letter-spacing:1px}
+</style>
 </head>
 <body>
-  <canvas id="view"></canvas>
-  <div id="floaters"></div>
-  <div id="loading">Inflating the padded room...</div>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <div class="logo"><span>skeet.wts</span></div>
+  <div class="sub">wumpus torture simulator • free cheat</div>
+  <div class="card">
+    <div class="rainbow"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('install')">Install</div>
+      <div class="tab" onclick="switchTab('changelog')">Changelog</div>
+      <div class="tab" onclick="switchTab('api')">API</div>
+    </div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-      "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
-    }
-  }
-  </script>
-  <script type="module" src="./src/main.js"></script>
+    <div id="tab-install" class="tab-content active">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Go to <b>Wumpus Torture Simulator</b><br>
+          <a href="https://winchxyz.github.io/wumpus-torture-simulator/" target="_blank" style="color:#37b1da;font-size:10px;">winchxyz.github.io/wumpus-torture-simulator</a>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Press <b>F12</b> → go to <b>Console</b> tab</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          Paste this one-liner and hit <b>Enter</b>:
+          <div class="code-box" id="lc" onclick="copyLoader()">loading...</div>
+          <span style="font-size:9px;color:#444">click to copy • OTA auto-updates on each inject</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          Menu pops up. Use <b>INSERT</b> to toggle.<br>
+          Multiplayer: <b>NETWORK</b> tab → Host or Join.
+        </div>
+      </div>
+      <button class="btn green" onclick="copyLoader()">📋 Copy Loader</button>
+    </div>
+
+    <div id="tab-changelog" class="tab-content">
+      <div class="changelog-entry">
+        <div class="cl-ver">
+          <span>v1.3</span><span class="cl-tag">LATEST</span>
+          <span class="cl-date">2026-10-10</span>
+        </div>
+        <div class="cl-item">Hot OTA in-game reload (no page refresh) <span class="feat">NEW</span></div>
+        <div class="cl-item">Loading splash screen with progress bar</div>
+        <div class="cl-item">Changelog tab in-menu</div>
+        <div class="cl-item fix">Fixed THREE is not defined in physgun</div>
+        <div class="cl-item fix">Fixed g redeclaration in visuals API</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="cl-ver">
+          <span>v1.2</span>
+          <span class="cl-date">2026-10-10</span>
+        </div>
+        <div class="cl-item">Multiplayer with 3D red skeleton avatars + nicknames</div>
+        <div class="cl-item">Sandbox: spawn physics cubes</div>
+        <div class="cl-item">Gravity Gun (Physgun) — middle click to grab</div>
+        <div class="cl-item">Zombie Mode (torso crawling)</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="cl-ver">
+          <span>v1.1</span>
+          <span class="cl-date">2026-10-10</span>
+        </div>
+        <div class="cl-item">3rd Person Camera — RMB drag + scroll zoom</div>
+        <div class="cl-item">FOV Changer slider</div>
+        <div class="cl-item">300+ Lua API functions</div>
+        <div class="cl-item">Custom meme poses (twerk, jerk)</div>
+      </div>
+    </div>
+
+    <div id="tab-api" class="tab-content">
+      <div style="font-size:11px;color:#9d9d9d;line-height:1.8">
+        Full API available in-menu under <b style="color:#cdcdcd">LUA</b> tab.<br><br>
+        <b style="color:#cdcdcd">Namespaces:</b><br>
+        <code style="color:#37b1da">client</code> · <code style="color:#37b1da">input</code> · <code style="color:#37b1da">render</code> · <code style="color:#37b1da">ui</code> · <code style="color:#37b1da">wumpus</code> · <code style="color:#37b1da">entity</code> · <code style="color:#37b1da">camera</code> · <code style="color:#37b1da">world</code> · <code style="color:#37b1da">math</code> · <code style="color:#37b1da">http</code> · <code style="color:#37b1da">audio</code> · <code style="color:#37b1da">visuals</code> · <code style="color:#37b1da">globals</code>
+        <br><br>
+        <a href="api_docs.md" target="_blank" style="color:#97b621;font-size:11px">📄 View full API docs →</a>
+      </div>
+    </div>
+    <div class="footer">OTA AUTO-UPDATE • kirilldma/wmpu • FREE FOREVER</div>
+  </div>
+</div>
+
+<script>
+const CDN = 'https://cdn.jsdelivr.net/gh/kirilldma/wmpu@main/gamesense_skeet.js';
+const loader = `fetch('${CDN}?v='+Date.now()).then(r=>r.text()).then(c=>eval(c))`;
+document.getElementById('lc').textContent = loader;
+
+function copyLoader(){
+  navigator.clipboard.writeText(loader).then(()=>{
+    const el=document.getElementById('lc');
+    const orig=el.textContent; el.textContent='✓ Copied to clipboard!'; el.style.borderColor='#97b621';
+    setTimeout(()=>{el.textContent=orig;el.style.borderColor='';},2000);
+  });
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab,.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// Animated background dots
+const cv=document.getElementById('bg'),ctx=cv.getContext('2d');
+let W,H,pts=[];
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;pts=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3}))}
+resize(); window.onresize=resize;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.fillStyle='#97b621';ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,Math.PI*2);ctx.fill();});
+  pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<120){ctx.strokeStyle=`rgba(151,182,33,${1-d/120})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}));
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
 </body>
 </html>

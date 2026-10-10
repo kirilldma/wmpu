@@ -137,6 +137,22 @@
         { type: 'text', id: 'net_lobby', label: 'Players: (none)' }
       ]
     },
+    'CHANGES': {
+      'Update History': [
+        { type: 'custom', id: 'changelogHtml', render: () => {
+            return CHANGELOG.map(c => `
+              <div style="margin-bottom:12px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-size:11px;font-weight:bold;color:#cdcdcd">${c.ver}</span>
+                  ${c.tag ? `<span style="font-size:9px;background:#97b621;color:#000;padding:1px 4px;font-weight:bold">${c.tag}</span>` : ''}
+                  <span style="font-size:9px;color:#555;margin-left:auto">${c.date}</span>
+                </div>
+                ${c.items.map(i => `<div style="font-size:10px;color:#9d9d9d;padding-left:8px;border-left:1px solid ${i.startsWith('✓')?'#37b1da':'#232323'}">${i}</div>`).join('')}
+              </div>
+            `).join('');
+        }}
+      ]
+    },
     'LUA': {
       'Script Editor': [
         { type: 'textarea', id: 'luaEditor' },
@@ -360,6 +376,94 @@
   // -------------------------------------------------------------------------
   // 4. GUI STYLES (Skeet Remake CSS)
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // OTA HOT RELOAD — checks for updates every 60s, reloads in-place
+  // -------------------------------------------------------------------------
+  const __SK_CDN__ = 'https://cdn.jsdelivr.net/gh/kirilldma/wmpu@main/gamesense_skeet.js';
+  let __SK_OTA_HASH__ = null;
+  async function otaCheck() {
+      try {
+          const r = await fetch(__SK_CDN__ + '?_ota=' + Date.now());
+          const txt = await r.text();
+          const hash = txt.length + '|' + txt.slice(0, 64);
+          if (__SK_OTA_HASH__ && __SK_OTA_HASH__ !== hash) {
+              console.log('%c[skeet OTA] New version detected! Hot-reloading...', 'color:#97b621;font-weight:bold');
+              // Clean up old instance
+              if (window.__SK_CLEANUP__) window.__SK_CLEANUP__();
+              // Re-eval new version
+              eval(txt);
+              return; // stop old interval
+          }
+          __SK_OTA_HASH__ = hash;
+      } catch(e) {}
+  }
+  if (!window.__SK_OTA_INTERVAL__) {
+      window.__SK_OTA_INTERVAL__ = setInterval(otaCheck, 60000);
+      otaCheck(); // initial hash capture
+  }
+
+  // -------------------------------------------------------------------------
+  // LOADING SPLASH SCREEN
+  // -------------------------------------------------------------------------
+  const CHANGELOG = [
+      { ver: 'v1.3', tag: 'LATEST', date: '2026-10-10', items: [
+          '+ Hot OTA in-game reload',
+          '+ Loading splash screen',
+          '+ Changelog tab in-menu',
+          '✓ Fixed THREE not defined in physgun',
+          '✓ Fixed g redeclaration in visuals.set_wumpus_color'
+      ]},
+      { ver: 'v1.2', date: '2026-10-10', items: [
+          '+ WebRTC Multiplayer with 3D red skeleton avatars',
+          '+ Nicknames & live lobby display',
+          '+ Sandbox: spawn physics cubes',
+          '+ Gravity Gun (middle click)',
+          '+ Zombie Mode (crawling torso)'
+      ]},
+      { ver: 'v1.1', date: '2026-10-10', items: [
+          '+ 3rd Person Camera (RMB drag + scroll)',
+          '+ FOV Changer slider',
+          '+ 300+ Lua API functions',
+          '+ camera, world, visuals, http, math modules',
+          '+ Custom meme poses: Twerk, Jerk Off'
+      ]}
+  ];
+
+  function showSplash(onDone) {
+      const splash = document.createElement('div');
+      splash.id = 'sk-splash';
+      splash.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:#0c0c0c;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Verdana,sans-serif;color:#cdcdcd;`;
+      splash.innerHTML = `
+        <div style="width:340px">
+          <div style="font-size:22px;font-weight:bold;letter-spacing:3px;margin-bottom:4px;background:linear-gradient(90deg,#37b1da,#cc46cd,#cce335);-webkit-background-clip:text;-webkit-text-fill-color:transparent">skeet.wts</div>
+          <div style="font-size:9px;color:#444;letter-spacing:3px;margin-bottom:28px;text-transform:uppercase">wumpus torture simulator cheat</div>
+          <div id="sk-sp-bar-wrap" style="height:4px;background:#1a1a1a;border:1px solid #0c0c0c;margin-bottom:12px">
+            <div id="sk-sp-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#37b1da,#97b621);transition:width .2s"></div>
+          </div>
+          <div id="sk-sp-msg" style="font-size:10px;color:#555;margin-bottom:28px">Initializing...</div>
+          <div style="font-size:9px;color:#2a2a2a;text-transform:uppercase;letter-spacing:2px;border-top:1px solid #1a1a1a;padding-top:12px">Version 1.3 • OTA Enabled • github.com/kirilldma/wmpu</div>
+        </div>
+      `;
+      document.body.appendChild(splash);
+
+      const steps = ['Connecting to OTA server...', 'Loading physics hooks...', 'Injecting ESP renderer...', 'Patching game loop...', 'Building UI...', 'Ready!'];
+      let i = 0;
+      const iv = setInterval(() => {
+          const pct = Math.round(((i+1)/steps.length)*100);
+          document.getElementById('sk-sp-bar').style.width = pct + '%';
+          document.getElementById('sk-sp-msg').textContent = steps[i];
+          i++;
+          if (i >= steps.length) {
+              clearInterval(iv);
+              setTimeout(() => {
+                  splash.style.transition = 'opacity .4s';
+                  splash.style.opacity = '0';
+                  setTimeout(() => { splash.remove(); onDone(); }, 400);
+              }, 300);
+          }
+      }, 220);
+  }
+
   const css = `
     @font-face { font-family: 'undefeated'; src: url('https://winchxyz.github.io/wumpus-torture-simulator/fonts/undefeated.ttf') format('truetype'); } /* Optional if they have icon font */
     #sk-gui {
@@ -468,7 +572,8 @@
   // -------------------------------------------------------------------------
   // 5. GUI CONTROLLER
   // -------------------------------------------------------------------------
-  const gui = document.createElement('div'); gui.id = 'sk-gui'; document.body.appendChild(gui);
+  const gui = document.createElement('div'); gui.id = 'sk-gui'; gui.style.display = 'none'; document.body.appendChild(gui);
+  showSplash(() => { gui.style.display = 'flex'; });
 
   const icons = {
     RAGE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="18" r="4"/><path d="M18 14v8M14 18h8"/></svg>`,
@@ -741,6 +846,8 @@
                     html += `<textarea id="${el.id}" class="sk-textarea" oninput="window.__SK_VAL__('${el.id}', this.value)">${state[el.id]}</textarea>`;
                 } else if (el.type === 'text') {
                     html += `<span id="${el.id}" style="color:#a5a8af;font-size:10px;margin-top:4px;">${el.label}</span>`;
+                } else if (el.type === 'custom') {
+                    html += el.render();
                 }
             });
             return html + `</div></div>`;
