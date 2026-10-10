@@ -379,7 +379,7 @@
   // -------------------------------------------------------------------------
   // OTA HOT RELOAD — checks for updates every 60s, reloads in-place
   // -------------------------------------------------------------------------
-  const __SK_CDN__ = 'https://cdn.jsdelivr.net/gh/kirilldma/wmpu@main/gamesense_skeet.js';
+  const __SK_CDN__ = 'https://cdn.jsdelivr.net/gh/kirilldma/wmpu@master/gamesense_skeet.js';
   let __SK_OTA_HASH__ = null;
   async function otaCheck() {
       try {
