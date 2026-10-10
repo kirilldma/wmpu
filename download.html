@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skeet.cc for WTS | Download</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f0f; color: #cdcdcd; font-family: Verdana, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .logo { font-size: 28px; font-weight: bold; letter-spacing: 2px; margin-bottom: 6px; }
+  .logo span { background: linear-gradient(90deg, #37b1da, #cc46cd, #cce335); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { font-size: 11px; color: #555; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 3px; }
+  .card { background: #171717; border: 1px solid #0c0c0c; box-shadow: inset 0 0 0 1px #232323, 0 20px 60px rgba(0,0,0,0.8); padding: 30px; width: 500px; max-width: 95vw; }
+  .card-title { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #232323; padding-bottom: 10px; margin-bottom: 20px; }
+  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+  .step-num { width: 22px; height: 22px; background: #97b621; color: #000; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-text { font-size: 11px; color: #9d9d9d; line-height: 1.6; }
+  .step-text b { color: #cdcdcd; }
+  .code-box { background: #0c0c0c; border: 1px solid #232323; padding: 10px 12px; font-family: Consolas, monospace; font-size: 10px; color: #97b621; margin: 8px 0; word-break: break-all; cursor: pointer; transition: border-color 0.15s; }
+  .code-box:hover { border-color: #97b621; }
+  .copy-hint { font-size: 9px; color: #555; margin-top: 3px; }
+  .btn { width: 100%; height: 28px; background: linear-gradient(to bottom, #2e2e2e, #292929); border: 1px solid #0c0c0c; color: #cdcdcd; font-size: 11px; cursor: pointer; margin-top: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); transition: background 0.1s; font-family: Verdana; }
+  .btn:hover { background: linear-gradient(to bottom, #363636, #313131); }
+  .btn.green { border-color: #97b621; color: #97b621; }
+  .version { position: fixed; bottom: 14px; font-size: 9px; color: #333; letter-spacing: 2px; }
+  .tag { display: inline-block; background: #97b621; color: #000; font-size: 9px; padding: 1px 5px; font-weight: bold; margin-left: 6px; vertical-align: middle; }
+  .rainbow { height: 2px; background: linear-gradient(90deg, #37b1da 0%, #cc46cd 50%, #cce335 100%); margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="logo"><span>skeet.wts</span></div>
+<div class="sub">wumpus torture simulator cheat</div>
+
+<div class="card">
+  <div class="rainbow"></div>
+  <div class="card-title">Installation <span class="tag">FREE</span></div>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-text">
+      Go to <b>wumpus torture simulator</b> in your browser.<br>
+      <a href="https://winchxyz.github.io/wumpus-torture-simulator/" target="_blank" style="color:#37b1da;font-size:10px;">https://winchxyz.github.io/wumpus-torture-simulator/</a>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-text">
+      Open the browser console: <b>F12 → Console</b><br>
+      <span style="color:#555;">(Firefox / Chrome both work)</span>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-text">
+      Paste this one-liner and hit <b>Enter</b>:
+      <div class="code-box" id="loader-code" onclick="copyLoader()">loading...</div>
+      <div class="copy-hint">Click to copy ↑</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-text">
+      Menu will appear. Press <b>INSERT</b> to toggle visibility.<br>
+      <b>Multiplayer:</b> go to NETWORK tab → Host or Join.
+    </div>
+  </div>
+
+  <button class="btn green" onclick="copyLoader()">📋 Copy Loader</button>
+</div>
+
+<div class="version">OTA AUTO-UPDATE ENABLED • v1.0.0</div>
+
+<script>
+  // Build the jsDelivr OTA loader URL from this page's own repo
+  const repoUrl = 'https://cdn.jsdelivr.net/gh/YOURUSER/wumpus-cheat@main/gamesense_skeet.js';
+  const loaderCode = `fetch('${repoUrl}?v='+Date.now()).then(r=>r.text()).then(c=>eval(c))`;
+  document.getElementById('loader-code').textContent = loaderCode;
+  
+  function copyLoader() {
+    navigator.clipboard.writeText(loaderCode).then(() => {
+      const el = document.getElementById('loader-code');
+      el.style.borderColor = '#97b621';
+      el.textContent = '✓ Copied!';
+      setTimeout(() => { el.style.borderColor=''; el.textContent = loaderCode; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>
