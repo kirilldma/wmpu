@@ -697,7 +697,7 @@
   
   // ---- Multiplayer helpers ----
   function mpUpdateLobby() {
-      const names = Object.values(runtime.network.remotePlayers).map(p => `💀 ${p.nick||p.id.slice(0,6)}`);
+      const names = Object.values(runtime.network.remotePlayers).map(p => `💀 ${p.nick||(p.id?p.id.slice(0,6):'?')}`);
       const me = `⚠ YOU (${state.mpNickname})`;
       window.__SK_VAL__('net_lobby', [me, ...names].join(' | ') || '(empty)');
   }
@@ -710,11 +710,11 @@
       
       let rp = runtime.network.remotePlayers[d.id];
       if (!rp) {
-          rp = runtime.network.remotePlayers[d.id] = { loaded: false };
+          rp = runtime.network.remotePlayers[d.id] = { loaded: false, id: d.id }; window.__SK_LOG__({r:151, g:182, b:33}, [Network]  joined!);
           const skel = runtime.network.skeletons[d.id] = { bodies: {}, group: new g.THREE.Group(), wumpus: null };
           g.scene.add(skel.group);
 
-          const sizes = { head: {type:'sphere',r:0.8}, torso: {type:'sphere',r:0.5}, pelvis: {type:'sphere',r:0.42}, legL: {type:'sphere',r:0.24}, legR: {type:'sphere',r:0.24}, armL: {type:'sphere',r:0.14}, armR: {type:'sphere',r:0.14}, foreL: {type:'sphere',r:0.17}, foreR: {type:'sphere',r:0.17} };
+          const sizes = { torso: {type:'sphere',r:0.6}, pelvis: {type:'sphere',r:0.5} };
           for (let seg in sizes) {
               let desc = g.RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -100, 0);
               let body = g.world.createRigidBody(desc);
