@@ -406,7 +406,12 @@
   // LOADING SPLASH SCREEN
   // -------------------------------------------------------------------------
   const CHANGELOG = [
-      { ver: 'v1.3', tag: 'LATEST', date: '2026-10-10', items: [
+      { ver: 'v1.4', tag: 'LATEST', date: '2026-10-10', items: [
+          '+ Multiplayer 2.0: Real Wumpus models (no more red blocks!)',
+          '+ Multiplayer Physics: Added full player-to-player collision',
+          '✓ Improved multiplayer sync rate and precision'
+      ]},
+      { ver: 'v1.3', date: '2026-10-10', items: [
           '+ Hot OTA in-game reload',
           '+ Loading splash screen',
           '+ Changelog tab in-menu',
@@ -697,71 +702,99 @@
       window.__SK_VAL__('net_lobby', [me, ...names].join(' | ') || '(empty)');
   }
   
+  let _skWumpusFactory = null;
   function mpHandlePacket(d) {
       if (!d || !d.id) return;
       const g = resolveGame();
-      if (!g) return;
-      if (!runtime.network.remotePlayers[d.id]) {
-          runtime.network.remotePlayers[d.id] = {};
-          // Spawn evil skeleton mesh for this player
-          if (g.scene && g.THREE) {
-              const T = g.THREE;
-              const group = new T.Group();
-              const mat = new T.MeshStandardMaterial({ color: 0xff2222, emissive: 0x440000 });
-              const sphereGeo = new T.SphereGeometry(0.12, 6, 6);
-              const boxGeo = new T.BoxGeometry(0.15, 0.3, 0.15);
-              // head
-              const head = new T.Mesh(sphereGeo, mat); head.name = 'head';
-              // torso
-              const torso = new T.Mesh(new T.BoxGeometry(0.25, 0.4, 0.2), mat); torso.name = 'torso';
-              // arms
-              const armL = new T.Mesh(boxGeo, mat); armL.name = 'armL';
-              const armR = new T.Mesh(boxGeo, mat); armR.name = 'armR';
-              const pelvis = new T.Mesh(new T.BoxGeometry(0.22, 0.18, 0.18), mat); pelvis.name = 'pelvis';
-              const legL = new T.Mesh(boxGeo, mat); legL.name = 'legL';
-              const legR = new T.Mesh(boxGeo, mat); legR.name = 'legR';
-              
-              group.add(head, torso, armL, armR, pelvis, legL, legR);
-              g.scene.add(group);
-              
-              // Label canvas
-              const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
-              const lctx = canvas.getContext('2d');
-              lctx.fillStyle = '#ff2222'; lctx.font = 'bold 28px Verdana';
-              lctx.fillText('👹 ' + (d.nick || d.id.slice(0,8)), 4, 42);
-              const texture = new T.CanvasTexture(canvas);
-              const lblMat = new T.SpriteMaterial({ map: texture, transparent: true });
-              const sprite = new T.Sprite(lblMat); sprite.scale.set(1.5, 0.4, 1);
-              sprite.name = 'label';
-              group.add(sprite);
-              
-              runtime.network.skeletons[d.id] = { group, parts: { head, torso, armL, armR, pelvis, legL, legR }, label: sprite };
+      if (!g || !g.scene || !g.THREE) return;
+      
+      let rp = runtime.network.remotePlayers[d.id];
+      if (!rp) {
+          rp = runtime.network.remotePlayers[d.id] = { loaded: false };
+          const skel = runtime.network.skeletons[d.id] = { bodies: {}, group: new g.THREE.Group(), wumpus: null };
+          g.scene.add(skel.group);
+
+          const sizes = { head: {type:'sphere',r:0.8}, torso: {type:'sphere',r:0.5}, pelvis: {type:'sphere',r:0.42}, legL: {type:'sphere',r:0.24}, legR: {type:'sphere',r:0.24}, armL: {type:'sphere',r:0.14}, armR: {type:'sphere',r:0.14}, foreL: {type:'sphere',r:0.17}, foreR: {type:'sphere',r:0.17} };
+          for (let seg in sizes) {
+              let desc = g.RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -100, 0);
+              let body = g.world.createRigidBody(desc);
+              let s = sizes[seg];
+              let col = g.RAPIER.ColliderDesc.ball(s.r);
+              col.setCollisionGroups(0x00020001); // enable collision
+              g.world.createCollider(col, body);
+              skel.bodies[seg] = body;
           }
+
+          const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
+          const lctx = canvas.getContext('2d');
+          lctx.fillStyle = '#ffffff'; lctx.font = 'bold 28px Verdana';
+          lctx.fillText('😎 ' + (d.nick || d.id.slice(0,8)), 4, 42);
+          const texture = new g.THREE.CanvasTexture(canvas);
+          const lblMat = new g.THREE.SpriteMaterial({ map: texture, transparent: true });
+          skel.label = new g.THREE.Sprite(lblMat); skel.label.scale.set(1.5, 0.4, 1);
+          skel.group.add(skel.label);
+
+          const loadVis = async () => {
+              if (!_skWumpusFactory) {
+                  try {
+                      const m = await import('https://winchxyz.github.io/wumpus-torture-simulator/src/wumpus.js');
+                      _skWumpusFactory = m.createWumpus;
+                  } catch(e) { console.error('wumpus load fail', e); return; }
+              }
+              skel.wumpus = _skWumpusFactory({ THREE: g.THREE });
+              skel.wumpus.setPoseControl(false);
+              skel.wumpus.setLife(false);
+              
+              for (let seg in skel.wumpus.segments) {
+                  const sGrp = skel.wumpus.segments[seg];
+                  sGrp.matrixAutoUpdate = false;
+                  skel.group.add(sGrp);
+              }
+              rp.loaded = true;
+          };
+          loadVis();
+          mpUpdateLobby();
       }
-      runtime.network.remotePlayers[d.id] = { ...d, lastUpdate: performance.now() };
-      mpUpdateLobby();
-      // Update skeleton positions
-      if (runtime.network.skeletons[d.id] && d.segs) {
-          const sk = runtime.network.skeletons[d.id];
-          for (let seg in sk.parts) {
-              const pos = d.segs[seg];
-              if (pos) sk.parts[seg].position.set(pos.x, pos.y, pos.z);
+      
+      rp.lastUpdate = performance.now();
+      rp.nick = d.nick;
+      
+      const skel = runtime.network.skeletons[d.id];
+      if (skel && d.segs) {
+          let maxY = -999;
+          for (let seg in d.segs) {
+              const data = d.segs[seg];
+              if (!data.t || !data.q) continue;
+              if (skel.bodies[seg]) {
+                  skel.bodies[seg].setNextKinematicTranslation(data.t);
+                  skel.bodies[seg].setNextKinematicRotation(data.q);
+              }
+              if (skel.wumpus && skel.wumpus.segments[seg]) {
+                  const sGrp = skel.wumpus.segments[seg];
+                  sGrp.position.set(data.t.x, data.t.y, data.t.z);
+                  sGrp.quaternion.set(data.q.x, data.q.y, data.q.z, data.q.w);
+                  sGrp.updateMatrix();
+                  sGrp.updateWorldMatrix(true, false);
+              }
+              if (data.t.y > maxY) maxY = data.t.y;
           }
-          // Label above head
-          if (d.segs.head) sk.label.position.set(d.segs.head.x, d.segs.head.y + 0.5, d.segs.head.z);
+          if (skel.label && d.segs.head) {
+              skel.label.position.set(d.segs.head.t.x, maxY + 0.9, d.segs.head.t.z);
+          }
       }
   }
-  
+
   function mpSendSelf(g) {
       if (!runtime.network.connections.length && !runtime.network.conn) return;
       let pkt = { id: runtime.network.peer.id, nick: state.mpNickname, segs: {} };
       for (let seg in g.ragdoll.bodies) {
-          const t = g.ragdoll.bodies[seg].translation();
-          pkt.segs[seg] = { x: t.x, y: t.y, z: t.z };
+          const b = g.ragdoll.bodies[seg];
+          if (!b || !b.isEnabled()) continue;
+          const t = b.translation();
+          const q = b.rotation();
+          pkt.segs[seg] = { t: {x: t.x, y: t.y, z: t.z}, q: {x: q.x, y: q.y, z: q.z, w: q.w} };
       }
-      // host broadcasts to all clients
       runtime.network.connections.forEach(c => { try { c.send(pkt); } catch(e){} });
-      // client sends to host
       if (runtime.network.conn) { try { runtime.network.conn.send(pkt); } catch(e){} }
   }
   
