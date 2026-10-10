@@ -76,7 +76,7 @@
 
 <script>
   // Build the jsDelivr OTA loader URL from this page's own repo
-  const repoUrl = 'https://cdn.jsdelivr.net/gh/YOURUSER/wumpus-cheat@main/gamesense_skeet.js';
+  const repoUrl = 'https://cdn.jsdelivr.net/gh/kirilldma/wmpu@main/gamesense_skeet.js';
   const loaderCode = `fetch('${repoUrl}?v='+Date.now()).then(r=>r.text()).then(c=>eval(c))`;
   document.getElementById('loader-code').textContent = loaderCode;
   
