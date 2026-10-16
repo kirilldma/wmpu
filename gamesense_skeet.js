@@ -30,7 +30,7 @@
   };
 
   const runtime = {
-    customPose: null, lastShot: 0, hitlogs: [], fps: 60, frameCount: 0, lastFpsUpdate: performance.now(),
+    customPose: null, lastShot: 0, hitlogs: [], eventLogs: [], fps: 60, frameCount: 0, lastFpsUpdate: performance.now(),
     renderQueue: [], eventCallbacks: {}, luaCallbacks: {},
     activeTab: 'RAGE', camAngles: { theta: 0, phi: Math.PI/2.5, radius: 10 }, isDraggingCam: false,
     props: [], physgunState: { body: null, dist: 0 },
@@ -613,6 +613,18 @@
       if(runtime.luaCallbacks[id]) { try { runtime.luaCallbacks[id](); } catch(e){ console.error(e); } }
   };
 
+  window.__SK_LOG__ = (color, msg) => {
+    const col = color || { r: 151, g: 182, b: 33 };
+    console.log(`%c[gamesense]%c ${msg}`, `color:rgb(${col.r},${col.g},${col.b});font-weight:bold;`, 'color:#fff;');
+    if (!runtime.eventLogs) runtime.eventLogs = [];
+    runtime.eventLogs.push({
+      text: msg,
+      color: col,
+      time: performance.now()
+    });
+    if (runtime.eventLogs.length > 8) runtime.eventLogs.shift();
+  };
+
   window.__SK_EXEC_LUA__ = () => {
       const code = document.getElementById('luaEditor').value;
       const status = document.getElementById('luaStatus');
@@ -815,7 +827,7 @@
       });
       runtime.network.peer.on('connection', c => {
           runtime.network.connections.push(c);
-          c.on('open', () => { window.__SK_VAL__('net_status', `📡 Hosting | ${runtime.network.connections.length} connected`); });
+          c.on('open', () => { window.__SK_VAL__('net_status', `📡 Hosting | ${runtime.network.connections.length} connected`); window.__SK_LOG__({r:151, g:182, b:33}, `[Network] Client connected (${runtime.network.connections.length} total)`); });
           c.on('data', d => mpHandlePacket(d));
           c.on('close', () => {
               runtime.network.connections = runtime.network.connections.filter(x => x !== c);
@@ -834,7 +846,7 @@
           window.__SK_VAL__('net_status', '🔗 Connecting...');
           runtime.network.conn = runtime.network.peer.connect(id.trim());
           runtime.network.conn.on('open', () => {
-              window.__SK_VAL__('net_status', '✅ Connected!');
+              window.__SK_VAL__('net_status', '✅ Connected!'); window.__SK_LOG__({r:151, g:182, b:33}, '[Network] Connected to host!');
               runtime.network.conn.on('data', d => mpHandlePacket(d));
               runtime.network.conn.on('close', () => { window.__SK_VAL__('net_status', '❌ Disconnected'); window.__SK_LOG__({r:200, g:50, b:50}, '[Network] Disconnected from host'); });
           });
@@ -929,6 +941,27 @@
     const g = resolveGame();
 
     if (runtime.eventCallbacks['paint']) { runtime.eventCallbacks['paint'].forEach(cb => { try { cb(); } catch(e) {} }); }
+
+    // Render event logs (top-left)
+    if (runtime.eventLogs && runtime.eventLogs.length > 0) {
+      const now = performance.now();
+      let ly = 16;
+      for (let i = runtime.eventLogs.length - 1; i >= 0; i--) {
+        const item = runtime.eventLogs[i];
+        const age = now - item.time;
+        if (age > 6000) {
+          runtime.eventLogs.splice(i, 1);
+          continue;
+        }
+        let alpha = 1.0;
+        if (age > 5000) alpha = Math.max(0, 1.0 - (age - 5000) / 1000);
+        ctx.font = '11px Tahoma, Verdana, sans-serif';
+        const c = item.color || { r: 151, g: 182, b: 33 };
+        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
+        ctx.fillText(item.text, 14, ly);
+        ly += 16;
+      }
+    }
 
     if (state.watermark) {
       const text = `gamesense | wumpus torture | ${runtime.fps} fps`;
