@@ -710,7 +710,7 @@
       
       let rp = runtime.network.remotePlayers[d.id];
       if (!rp) {
-          rp = runtime.network.remotePlayers[d.id] = { loaded: false, id: d.id }; window.__SK_LOG__({r:151, g:182, b:33}, [Network]  joined!);
+          rp = runtime.network.remotePlayers[d.id] = { loaded: false, id: d.id, nick: d.nick }; window.__SK_LOG__({r:151, g:182, b:33}, '[Network] ' + (d.nick || (d.id ? d.id.slice(0,8) : 'player')) + ' joined!');
           const skel = runtime.network.skeletons[d.id] = { bodies: {}, group: new g.THREE.Group(), wumpus: null };
           g.scene.add(skel.group);
 
@@ -836,7 +836,7 @@
           runtime.network.conn.on('open', () => {
               window.__SK_VAL__('net_status', '✅ Connected!');
               runtime.network.conn.on('data', d => mpHandlePacket(d));
-              runtime.network.conn.on('close', () => window.__SK_VAL__('net_status', '❌ Disconnected'));
+              runtime.network.conn.on('close', () => { window.__SK_VAL__('net_status', '❌ Disconnected'); window.__SK_LOG__({r:200, g:50, b:50}, '[Network] Disconnected from host'); });
           });
           runtime.network.conn.on('error', e => window.__SK_VAL__('net_status', '❌ Error: ' + e.type));
       });
@@ -1099,7 +1099,9 @@
                 g.scene.remove(runtime.network.skeletons[id].group);
                 delete runtime.network.skeletons[id];
             }
+            const pNick = (runtime.network.remotePlayers[id] && runtime.network.remotePlayers[id].nick) || (id ? id.slice(0,8) : 'player');
             delete runtime.network.remotePlayers[id];
+            window.__SK_LOG__({r:200, g:50, b:50}, '[Network] ' + pNick + ' left.');
             mpUpdateLobby();
         }
     }
